@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfTaskGen.Classes", "WcfTaskGen.Classes\WcfTaskGen.Classes.csproj", "{54F5538D-4E7A-4B6F-A4BE-6B9B633FDF33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfTaskGen", "WcfTaskGen\WcfTaskGen.csproj", "{FC7B4DE8-55C7-4E25-B5D7-913543111F54}"
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 3
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs13
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = WcfTaskGen.Classes\\WcfTaskGen.Classes.csproj
+		SccProjectName1 = WcfTaskGen.Classes
+		SccLocalPath1 = WcfTaskGen.Classes
+		SccProjectUniqueName2 = WcfTaskGen\\WcfTaskGen.csproj
+		SccProjectName2 = WcfTaskGen
+		SccLocalPath2 = WcfTaskGen
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54F5538D-4E7A-4B6F-A4BE-6B9B633FDF33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54F5538D-4E7A-4B6F-A4BE-6B9B633FDF33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54F5538D-4E7A-4B6F-A4BE-6B9B633FDF33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54F5538D-4E7A-4B6F-A4BE-6B9B633FDF33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC7B4DE8-55C7-4E25-B5D7-913543111F54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC7B4DE8-55C7-4E25-B5D7-913543111F54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC7B4DE8-55C7-4E25-B5D7-913543111F54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC7B4DE8-55C7-4E25-B5D7-913543111F54}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
