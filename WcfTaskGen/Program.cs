@@ -105,10 +105,12 @@ namespace WcfTaskGen
                 return;
             }
 
+            CodeProvider codeProvider = language.Equals("C#", StringComparison.OrdinalIgnoreCase) ? (CodeProvider)new CSharpCodeProvider("    ") : new VBCodeProvider("    ");
+
             using (stream)
             using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8))
             {
-                AsyncWrapperGenerator.CreateAsyncWrapper(inspector.InterfaceDescriptions[0].AsyncOperationPairs, inspector.InterfaceDescriptions[0], new CSharpCodeProvider("    "), writer);
+                AsyncWrapperGenerator.CreateAsyncWrapper(inspector.InterfaceDescriptions[0].AsyncOperationPairs, inspector.InterfaceDescriptions[0], codeProvider, writer);
             }
         }
 

@@ -34,7 +34,20 @@ namespace WcfTaskGen.Classes.MinCodeDom
             GenerateNamespace(@namespace);
         }
 
-        protected abstract void GenerateType(CodeTypeReference type);
+        protected abstract string GetEscapedName(string name);
+        protected abstract void GenerateType(Type type);
+
+        protected virtual void GenerateType(CodeTypeReference type)
+        {
+            if (!string.IsNullOrEmpty(type.SimpleName))
+            {
+                Write(GetEscapedName(type.SimpleName));
+                return;
+            }
+
+            GenerateType(type.Type);
+        }
+
         protected abstract void GenerateParameter(CodeParameter parameter);
         protected abstract void GenerateMethod(CodeMethod method, bool isInInterface);
         protected abstract void GenerateClass(CodeClass @class);

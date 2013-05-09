@@ -24,5 +24,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
         public string Name { get; set; }
         public List<CodeParameter> Parameters { get; private set; }
         public CodeFromAsync Statement { get; set; }
+        public CodeTypeReference ImplementationClass { get; set; }
+        public string ImplementationMethod { get; set; }
     }
 }

@@ -44,6 +44,9 @@ namespace WcfTaskGen.Classes
                 if (pair.ReturnType != null)
                     method.Statement.ReturnType = new CodeTypeReference(pair.ReturnType);
 
+                method.ImplementationClass = new CodeTypeReference(interfaceFullName);
+                method.ImplementationMethod = method.Name;
+
                 @class.Methods.Add(method);
             }
 

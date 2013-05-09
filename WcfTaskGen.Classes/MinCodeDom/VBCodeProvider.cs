@@ -5,13 +5,25 @@ using System.Text;
 
 namespace WcfTaskGen.Classes.MinCodeDom
 {
-    public class CSharpCodeProvider : CodeProvider
+    public class VBCodeProvider : CodeProvider
     {
-        private static readonly string[] Keywords = new string[] { "abstract", "add", "alias", "as", "ascending", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue", "decimal", "default", "delegate", "descending", "do", "double", "dynamic", "else", "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for", "foreach", "from", "get", "global", "goto", "group", "if", "implicit", "in", "int", "interface", "internal", "into", "is", "join", "let", "lock", "long", "namespace", "new", "null", "object", "operator", "orderby", "out", "override", "params", "partial", "private", "protected", "public", "readonly", "ref", "remove", "return", "sbyte", "sealed", "select", "set", "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "value", "var", "virtual", "void", "volatile", "where", "while", "yield" };
+        private static readonly string[] Keywords = new string[] { "AddHandler", "AddressOf", "Alias", "And", "AndAlso", "As", "Boolean", "ByRef", "Byte", "ByVal", "Call", "Case", "Catch", "CBool", "CByte", "CChar", "CDate", "CDbl", "CDec", "Char", "CInt", "Class", "CLng", "CObj", "Const", "Continue", "CSByte", "CShort", "CSng", "CStr", "CType", "CUInt", "CULng", "CUShort", "Date", "Decimal", "Declare", "Default", "Delegate", "Dim", "DirectCast", "Do", "Double", "Each", "Else", "ElseIf", "End", "EndIf", "Enum", "Erase", "Error", "Event", "Exit", "False", "Finally", "For", "Friend", "Function", "Get", "GetType", "GetXMLNamespace", "Global", "GoSub", "GoTo", "Handles", "If", "Implements", "Imports", "In", "Inherits", "Integer", "Interface", "Is", "IsNot", "Let", "Lib", "Like", "Long", "Loop", "Me", "Mod", "Module", "Module Statement", "MustInherit", "MustOverride", "MyBase", "MyClass", "Namespace", "Narrowing", "New", "Next", "Not", "Nothing", "NotInheritable", "NotOverridable", "Object", "Of", "On", "Operator", "Option", "Optional", "Or", "OrElse", "Out", "Overloads", "Overridable", "Overrides", "ParamArray", "Partial", "Private", "Property", "Protected", "Public", "RaiseEvent", "ReadOnly", "ReDim", "REM", "RemoveHandler", "Resume", "Return", "SByte", "Select", "Set", "Shadows", "Shared", "Short", "Single", "Static", "Step", "Stop", "String", "Structure", "Structure", "Sub", "SyncLock", "Then", "Throw", "To", "True", "Try", "TryCast", "TypeOf…Is", "UInteger", "ULong", "UShort", "Using", "Variant", "Wend", "When", "While", "Widening", "With", "WithEvents", "WriteOnly", "Xor" };
 
-        public CSharpCodeProvider(string indentation)
+        public VBCodeProvider(string indentation)
             : base(indentation)
         {
+        }
+
+        protected override void GenerateType(CodeTypeReference type)
+        {
+            if (!string.IsNullOrEmpty(type.SimpleName))
+            {
+                Write("Global.");
+                Write(GetEscapedName(type.SimpleName));
+                return;
+            }
+
+            GenerateType(type.Type);
         }
 
         protected override string GetEscapedName(string name)
@@ -20,8 +32,8 @@ namespace WcfTaskGen.Classes.MinCodeDom
 
             for (int i = 0; i < parts.Length; i++)
             {
-                if (Keywords.Contains(parts[i]))
-                    parts[i] = "@" + parts[i];
+                if (Keywords.Any(k => string.Equals(k, parts[i], StringComparison.OrdinalIgnoreCase)))
+                    parts[i] = "[" + parts[i] + "]";
             }
 
             return string.Join(".", parts);
@@ -32,13 +44,13 @@ namespace WcfTaskGen.Classes.MinCodeDom
             if (type.IsArray)
             {
                 GenerateType(type.GetElementType());
-                Write("[");
+                Write("(");
 
                 int rank = type.GetArrayRank();
                 if (rank > 1)
                     Write(new string(',', rank - 1));
 
-                Write("]");
+                Write(")");
 
                 return;
             }
@@ -49,7 +61,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 string fullName = definition.FullName;
                 int index = fullName.IndexOf('`');
                 Write(GetEscapedName(fullName.Substring(0, index)));
-                Write("<");
+                Write("(Of ");
 
                 Type[] arguments = type.GetGenericArguments();
                 for (int i = 0; i < arguments.Length; i++)
@@ -60,18 +72,20 @@ namespace WcfTaskGen.Classes.MinCodeDom
                         Write(", ");
                 }
 
-                Write(">");
+                Write(")");
                 return;
             }
 
+            Write("Global.");
             Write(GetEscapedName(type.FullName));
         }
 
         protected override void GenerateParameter(CodeParameter parameter)
         {
-            GenerateType(parameter.Type);
-            Write(" ");
+            Write("ByVal ");
             Write(GetEscapedName(parameter.Name));
+            Write(" As ");
+            GenerateType(parameter.Type);
         }
 
         protected override void GenerateMethod(CodeMethod method, bool isInInterface)
@@ -82,13 +96,12 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 Write(" ");
 
             if (method.IsAsync)
-                Write("async ");
+                Write("Async ");
 
             if (method.ReturnType == null)
-                Write("void");
+                Write("Sub ");
             else
-                GenerateType(method.ReturnType);
-            Write(" ");
+                Write("Function ");
 
             Write(GetEscapedName(method.Name));
 
@@ -103,15 +116,24 @@ namespace WcfTaskGen.Classes.MinCodeDom
             }
             Write(")");
 
-            if (isInInterface)
+            if (method.ReturnType != null)
             {
-                WriteLine(";");
+                Write(" As ");
+                GenerateType(method.ReturnType);
             }
-            else
-            {
-                WriteLine();
-                WriteLine("{");
 
+            if (method.ImplementationClass != null && !string.IsNullOrEmpty(method.ImplementationMethod))
+            {
+                Write(" Implements ");
+                GenerateType(method.ImplementationClass);
+                Write(".");
+                Write(GetEscapedName(method.ImplementationMethod));
+            }
+
+            WriteLine();
+
+            if (!isInInterface)
+            {
                 if (method.Statement != null)
                 {
                     IncreaseIndentation();
@@ -119,7 +141,10 @@ namespace WcfTaskGen.Classes.MinCodeDom
                     DecreaseIndentation();
                 }
 
-                WriteLine("}");
+                if (method.ReturnType == null)
+                    WriteLine("End Sub");
+                else
+                    WriteLine("End Function");
             }
             DecreaseIndentation();
         }
@@ -132,41 +157,52 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 Write(" ");
 
             if (@class.IsPartial)
-                Write("partial ");
+                Write("Partial ");
 
-            Write(@class.IsInterface ? "interface " : "class ");
+            Write(@class.IsInterface ? "Interface " : "Class ");
             Write(GetEscapedName(@class.Name));
 
             if (@class.BaseType != null)
             {
-                Write(" : ");
+                WriteLine();
+                IncreaseIndentation();
+
+                if (@class.IsInterface)
+                    Write("Inherits ");
+                else
+                    Write("Implements ");
+
                 GenerateType(@class.BaseType);
+                DecreaseIndentation();
             }
 
             WriteLine();
-            WriteLine("{");
+            WriteLine();
 
             foreach (CodeMethod method in @class.Methods)
             {
                 GenerateMethod(method, @class.IsInterface);
             }
 
-            WriteLine("}");
+            if (@class.IsInterface)
+                WriteLine("End Interface");
+            else
+                WriteLine("End Class");
+
             DecreaseIndentation();
         }
 
         protected override void GenerateNamespace(CodeNamespace @namespace)
         {
-            Write("namespace ");
+            Write("Namespace Global.");
             WriteLine(GetEscapedName(@namespace.Name));
-            WriteLine("{");
 
             foreach (CodeClass @class in @namespace.Classes)
             {
                 GenerateClass(@class);
             }
 
-            WriteLine("}");
+            WriteLine("End Namespace");
         }
 
         private string GetModifier(Modifiers modifier)
@@ -174,13 +210,13 @@ namespace WcfTaskGen.Classes.MinCodeDom
             switch (modifier)
             {
                 case Modifiers.Internal:
-                    return "internal";
+                    return "Friend";
 
                 case Modifiers.Public:
-                    return "public";
+                    return "Public";
 
                 case Modifiers.Private:
-                    return "private";
+                    return "Private";
 
                 case Modifiers.None:
                     return String.Empty;
@@ -192,19 +228,19 @@ namespace WcfTaskGen.Classes.MinCodeDom
 
         private void GenerateFromAsync(CodeFromAsync statement)
         {
-            Write("return System.Threading.Tasks.Task.Factory.FromAsync");
+            Write("Return System.Threading.Tasks.Task.Factory.FromAsync");
 
             if (statement.ReturnType == null && statement.Parameters.Count == 0)
             {
-                Write("(");
+                Write("(AddressOf ");
                 Write(statement.BeginMethodName);
-                Write(", ");
+                Write(", AddressOf ");
                 Write(statement.EndMethodName);
-                WriteLine(", null);");
+                WriteLine(", Nothing)");
             }
             else if (statement.Parameters.Count < 4)
             {
-                Write("<");
+                Write("(Of ");
 
                 List<CodeTypeReference> types = new List<CodeTypeReference>(statement.Parameters.Select(p => p.Type));
                 if (statement.ReturnType != null)
@@ -218,9 +254,9 @@ namespace WcfTaskGen.Classes.MinCodeDom
                         Write(", ");
                 }
 
-                Write(">(");
+                Write(")(AddressOf ");
                 Write(statement.BeginMethodName);
-                Write(", ");
+                Write(", AddressOf ");
                 Write(statement.EndMethodName);
 
                 foreach (CodeParameter parameter in statement.Parameters)
@@ -229,15 +265,15 @@ namespace WcfTaskGen.Classes.MinCodeDom
                     Write(GetEscapedName(parameter.Name));
                 }
 
-                WriteLine(", null);");
+                WriteLine(", Nothing)");
             }
             else
             {
                 if (statement.ReturnType != null)
                 {
-                    Write("<");
+                    Write("(Of ");
                     GenerateType(statement.ReturnType);
-                    Write(">");
+                    Write(")");
                 }
 
                 Write("(");
@@ -245,10 +281,10 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 Write("(");
 
                 Write(string.Join(", ", statement.Parameters.Select(p => GetEscapedName(p.Name))));
-                Write(", null, null)"); // AsyncCallback callback, object asyncState
-                Write(", ");
+                Write(", Nothing, Nothing)"); // AsyncCallback callback, object asyncState
+                Write(", AddressOf ");
                 Write(statement.EndMethodName);
-                WriteLine(");");
+                WriteLine(")");
             }
         }
     }
