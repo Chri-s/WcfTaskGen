@@ -18,7 +18,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
             Name = name;
         }
 
-        public bool IsInterface { get; set; }
+        public ClassType Type { get; set; }
         public Modifiers Modifier { get; set; }
         public bool IsPartial { get; set; }
         public string Name { get; set; }

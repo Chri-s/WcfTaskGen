@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using WcfTaskGen.Classes.MinCodeDom;
 
 namespace WcfTaskGen.Classes
 {
-    public static class AsyncWrapperGenerator
+    public static class ExtensionClassGenerator
     {
-        public static void CreateAsyncWrapper(IEnumerable<AsyncOperationPair> pairs, InterfaceDescription interfaceDescription, CodeProvider codeProvider, TextWriter writer)
+        public static void CreateExtensionClass(IEnumerable<AsyncOperationPair> pairs, InterfaceDescription interfaceDescription, CodeProvider codeProvider, TextWriter writer)
         {
             if (pairs == null)
                 throw new ArgumentNullException("pairs", "pairs is null.");
@@ -21,31 +22,20 @@ namespace WcfTaskGen.Classes
             if (writer == null)
                 throw new ArgumentNullException("writer", "writer is null.");
 
-            string interfaceName = interfaceDescription.Type.Name + "TaskAsync";
-            string interfaceFullName = interfaceDescription.Type.Namespace + "." + interfaceName;
+            string className = interfaceDescription.Type.Name.Substring(1) + "TaskAsyncExtensions";
+            string classFullName = interfaceDescription.Type.Namespace + "." + className;
 
             CodeNamespace ns = new CodeNamespace(interfaceDescription.Type.Namespace);
-            CodeClass @class = new CodeClass(interfaceName) { Modifier = interfaceDescription.Modifier, Type = ClassType.Interface, BaseType = new CodeTypeReference(interfaceDescription.Type) };
+            CodeClass @class = new CodeClass(className) { Modifier = interfaceDescription.Modifier, Type = ClassType.ExtensionClass };
             ns.Classes.Add(@class);
 
             foreach (AsyncOperationPair pair in pairs.Where(p => !p.ContainsRefOrOutParameters))
             {
-                CodeMethod method = GetMethodDefinition(pair, Modifiers.None);
-                @class.Methods.Add(method);
-            }
-
-            @class = new CodeClass(interfaceDescription.Type.Name.Substring(1) + "Client") { Modifier = interfaceDescription.Modifier, IsPartial = true, Type = ClassType.Class, BaseType = new CodeTypeReference(interfaceFullName) };
-            ns.Classes.Add(@class);
-            foreach (AsyncOperationPair pair in pairs.Where(p => !p.ContainsRefOrOutParameters))
-            {
-                CodeMethod method = GetMethodDefinition(pair, Modifiers.Public);
+                CodeMethod method = GetMethodDefinition(pair, Modifiers.Public, new CodeTypeReference(interfaceDescription.Type));
 
                 method.Statement = new CodeFromAsync(pair.BeginOperation.Name, pair.EndOperation.Name, null, pair.Parameters.Select(p => new CodeParameter(new CodeTypeReference(p.ParameterType), p.Name)));
                 if (pair.ReturnType != null)
                     method.Statement.ReturnType = new CodeTypeReference(pair.ReturnType);
-
-                method.ImplementationClass = new CodeTypeReference(interfaceFullName);
-                method.ImplementationMethod = method.Name;
 
                 @class.Methods.Add(method);
             }
@@ -53,23 +43,23 @@ namespace WcfTaskGen.Classes
             codeProvider.GenerateCode(ns, writer);
         }
 
-        public static string CreateAsyncWrapper(IEnumerable<AsyncOperationPair> pairs, InterfaceDescription interfaceDescription, CodeProvider codeProvider)
+        public static string CreateExtensionClass(IEnumerable<AsyncOperationPair> pairs, InterfaceDescription interfaceDescription, CodeProvider codeProvider)
         {
             using (StringWriter writer = new StringWriter())
             {
-                CreateAsyncWrapper(pairs, interfaceDescription, codeProvider, writer);
+                CreateExtensionClass(pairs, interfaceDescription, codeProvider, writer);
                 return writer.ToString();
             }
         }
 
-        private static CodeMethod GetMethodDefinition(AsyncOperationPair pair, Modifiers modifier)
+        private static CodeMethod GetMethodDefinition(AsyncOperationPair pair, Modifiers modifier, CodeTypeReference extendedType)
         {
             CodeMethod method = new CodeMethod()
-                            {
-                                Name = pair.Name + "TaskAsync",
-                                Modifier = modifier,
-
-                            };
+            {
+                Name = pair.Name + "TaskAsync",
+                Modifier = modifier,
+                ExtendedType = extendedType
+            };
             if (pair.ReturnType == null)
                 method.ReturnType = new CodeTypeReference(typeof(Task));
             else

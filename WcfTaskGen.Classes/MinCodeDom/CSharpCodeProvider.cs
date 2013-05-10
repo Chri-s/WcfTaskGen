@@ -67,22 +67,22 @@ namespace WcfTaskGen.Classes.MinCodeDom
             Write(GetEscapedName(type.FullName));
         }
 
-        protected override void GenerateParameter(CodeParameter parameter)
+        protected void GenerateParameter(CodeParameter parameter)
         {
             GenerateType(parameter.Type);
             Write(" ");
             Write(GetEscapedName(parameter.Name));
         }
 
-        protected override void GenerateMethod(CodeMethod method, bool isInInterface)
+        protected void GenerateMethod(CodeMethod method, ClassType classType)
         {
             IncreaseIndentation();
             Write(GetModifier(method.Modifier));
             if (method.Modifier != Modifiers.None)
                 Write(" ");
 
-            if (method.IsAsync)
-                Write("async ");
+            if (classType == ClassType.ExtensionClass)
+                Write("static ");
 
             if (method.ReturnType == null)
                 Write("void");
@@ -94,6 +94,17 @@ namespace WcfTaskGen.Classes.MinCodeDom
 
             Write("(");
 
+            if (classType == ClassType.ExtensionClass)
+            {
+                Write("this ");
+                GenerateType(method.ExtendedType);
+                Write(" ");
+                Write(GetEscapedName(method.GetExtendedParameterName()));
+
+                if (method.Parameters.Any())
+                    Write(", ");
+            }
+
             for (int i = 0; i < method.Parameters.Count; i++)
             {
                 GenerateParameter(method.Parameters[i]);
@@ -103,7 +114,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
             }
             Write(")");
 
-            if (isInInterface)
+            if (classType == ClassType.Interface)
             {
                 WriteLine(";");
             }
@@ -115,7 +126,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 if (method.Statement != null)
                 {
                     IncreaseIndentation();
-                    GenerateFromAsync(method.Statement);
+                    GenerateFromAsync(method.Statement, (classType == ClassType.ExtensionClass) ? method.GetExtendedParameterName() : null);
                     DecreaseIndentation();
                 }
 
@@ -124,7 +135,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
             DecreaseIndentation();
         }
 
-        protected override void GenerateClass(CodeClass @class)
+        protected void GenerateClass(CodeClass @class)
         {
             IncreaseIndentation();
             Write(GetModifier(@class.Modifier));
@@ -134,7 +145,21 @@ namespace WcfTaskGen.Classes.MinCodeDom
             if (@class.IsPartial)
                 Write("partial ");
 
-            Write(@class.IsInterface ? "interface " : "class ");
+            switch (@class.Type)
+            {
+                case ClassType.Class:
+                    Write("class ");
+                    break;
+
+                case ClassType.Interface:
+                    Write("interface ");
+                    break;
+
+                case ClassType.ExtensionClass:
+                    Write("static class ");
+                    break;
+            }
+
             Write(GetEscapedName(@class.Name));
 
             if (@class.BaseType != null)
@@ -148,7 +173,7 @@ namespace WcfTaskGen.Classes.MinCodeDom
 
             foreach (CodeMethod method in @class.Methods)
             {
-                GenerateMethod(method, @class.IsInterface);
+                GenerateMethod(method, @class.Type);
             }
 
             WriteLine("}");
@@ -190,15 +215,17 @@ namespace WcfTaskGen.Classes.MinCodeDom
             }
         }
 
-        private void GenerateFromAsync(CodeFromAsync statement)
+        private void GenerateFromAsync(CodeFromAsync statement, string extensionParameterName)
         {
             Write("return System.Threading.Tasks.Task.Factory.FromAsync");
 
             if (statement.ReturnType == null && statement.Parameters.Count == 0)
             {
                 Write("(");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.BeginMethodName);
                 Write(", ");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.EndMethodName);
                 WriteLine(", null);");
             }
@@ -219,8 +246,10 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 }
 
                 Write(">(");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.BeginMethodName);
                 Write(", ");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.EndMethodName);
 
                 foreach (CodeParameter parameter in statement.Parameters)
@@ -241,12 +270,14 @@ namespace WcfTaskGen.Classes.MinCodeDom
                 }
 
                 Write("(");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.BeginMethodName);
                 Write("(");
 
                 Write(string.Join(", ", statement.Parameters.Select(p => GetEscapedName(p.Name))));
                 Write(", null, null)"); // AsyncCallback callback, object asyncState
                 Write(", ");
+                WriteExtensionParameterNameIfNeeded(extensionParameterName);
                 Write(statement.EndMethodName);
                 WriteLine(");");
             }

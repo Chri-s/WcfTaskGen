@@ -48,10 +48,16 @@ namespace WcfTaskGen.Classes.MinCodeDom
             GenerateType(type.Type);
         }
 
-        protected abstract void GenerateParameter(CodeParameter parameter);
-        protected abstract void GenerateMethod(CodeMethod method, bool isInInterface);
-        protected abstract void GenerateClass(CodeClass @class);
         protected abstract void GenerateNamespace(CodeNamespace @namespace);
+
+        protected void WriteExtensionParameterNameIfNeeded(string extensionParameterName)
+        {
+            if (extensionParameterName == null)
+                return;
+
+            Write(GetEscapedName(extensionParameterName));
+            Write(".");
+        }
 
         protected void IncreaseIndentation()
         {

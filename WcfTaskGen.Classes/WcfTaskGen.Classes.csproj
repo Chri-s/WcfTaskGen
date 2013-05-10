@@ -54,7 +54,9 @@
     <Compile Include="CustomAttributes\OperationContractAttribute.cs" />
     <Compile Include="CustomAttributes\ServiceContractAttribute.cs" />
     <Compile Include="AsyncWrapperGenerator.cs" />
+    <Compile Include="ExtensionClassGenerator.cs" />
     <Compile Include="InterfaceDescription.cs" />
+    <Compile Include="MinCodeDom\ClassType.cs" />
     <Compile Include="MinCodeDom\CodeClass.cs" />
     <Compile Include="MinCodeDom\CodeFromAsync.cs" />
     <Compile Include="MinCodeDom\CodeMethod.cs" />

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using WcfTaskGen.Classes;
 using WcfTaskGen.Classes.MinCodeDom;
+using CommandLine;
 
 namespace WcfTaskGen
 {
@@ -14,53 +15,21 @@ namespace WcfTaskGen
 
         static void Main(string[] args)
         {
-            if (args.Length != 4)
+            var options = new Options();
+            if (!Parser.Default.ParseArguments(args, options) || !options.AreOptionsValid())
             {
-                Console.WriteLine(@"Usage: WcfTaskGen.exe <Assembly path> <Interface type> <Output path> <Language (C# or VB)>");
-                return;
-            }
-
-            string assemblyPath = args[0].Trim();
-            string interfaceType = args[1].Trim();
-            string outputPath = args[2].Trim();
-            string language = args[3].Trim();
-
-            try
-            {
-                if (!File.Exists(assemblyPath))
-                {
-                    Console.WriteLine("ERROR: The specified assembly path does not exist.");
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("ERROR: The specified assembly path could not be accessed: " + ex.Message);
-                return;
-            }
-
-            if (Path.GetInvalidPathChars().Any(c => outputPath.Contains(c.ToString())))
-            {
-                Console.WriteLine("ERROR: The specified output path contains invalid characters.");
-                return;
-            }
-
-            if (!Directory.Exists(Path.GetDirectoryName(outputPath)))
-            {
-                Console.WriteLine("ERROR: The directory of the specified output path does not exist.");
-                return;
-            }
-
-            if (!(string.Equals("C#", language, StringComparison.OrdinalIgnoreCase) || string.Equals("VB", language, StringComparison.OrdinalIgnoreCase)))
-            {
-                Console.WriteLine("ERROR: Language must be C# or VB.");
                 return;
             }
 
             Assembly assembly;
             try
             {
-                assembly = Assembly.ReflectionOnlyLoadFrom(assemblyPath);
+                assembly = Assembly.ReflectionOnlyLoadFrom(options.AssemblyPath);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("ERROR: The specified assembly path does not exist.");
+                return;
             }
             catch (Exception ex)
             {
@@ -75,7 +44,7 @@ namespace WcfTaskGen
 
             try
             {
-                if (!inspector.SearchType(interfaceType))
+                if (!inspector.SearchType(options.InterfaceType))
                 {
                     Console.WriteLine("ERROR: The interface type does not exist in the specified assembly.");
                     return;
@@ -97,7 +66,7 @@ namespace WcfTaskGen
 
             try
             {
-                stream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                stream = new FileStream(options.OutputPath, FileMode.Create, FileAccess.Write, FileShare.None);
             }
             catch (Exception ex)
             {
@@ -105,12 +74,15 @@ namespace WcfTaskGen
                 return;
             }
 
-            CodeProvider codeProvider = language.Equals("C#", StringComparison.OrdinalIgnoreCase) ? (CodeProvider)new CSharpCodeProvider("    ") : new VBCodeProvider("    ");
+            CodeProvider codeProvider = (options.ParsedLanguage == Languages.CSharp) ? (CodeProvider)new CSharpCodeProvider(new string(' ', options.Indentation)) : new VBCodeProvider(new string(' ', options.Indentation));
 
             using (stream)
             using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8))
             {
-                AsyncWrapperGenerator.CreateAsyncWrapper(inspector.InterfaceDescriptions[0].AsyncOperationPairs, inspector.InterfaceDescriptions[0], codeProvider, writer);
+                if (options.ParsedGeneratedType == GenerationTypes.Extensions)
+                    ExtensionClassGenerator.CreateExtensionClass(inspector.InterfaceDescriptions[0].AsyncOperationPairs, inspector.InterfaceDescriptions[0], codeProvider, writer);
+                else
+                    AsyncWrapperGenerator.CreateAsyncWrapper(inspector.InterfaceDescriptions[0].AsyncOperationPairs, inspector.InterfaceDescriptions[0], codeProvider, writer);
             }
         }
 

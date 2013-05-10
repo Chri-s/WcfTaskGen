@@ -7,7 +7,6 @@ namespace WcfTaskGen.Classes.MinCodeDom
 {
     public class CodeFromAsync
     {
-        // FromAsync(Func<AsyncCallback, Object, IAsyncResult>, Action<IAsyncResult>, Object)
         public CodeFromAsync()
         {
             Parameters = new List<CodeParameter>();
